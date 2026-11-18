@@ -25,6 +25,10 @@ docker compose exec -T app pytest -q
 
 拒绝规则优先于允许，授权必须同时命中资源、分区和生效窗；显式拒绝不得被宽授权覆盖。
 
+## 分区归属复核
+
+接收方按访问发生地业务日期归档，来源批次按发送方月初给月分区，月初夜间访问两边落月不同。每次共享访问在审计页形成唯一的分区归属复核版本：默认裁决按接收方地区日期重算（接收方时区参数`receiver_tz`，默认+08:00），来源分区作为证据保留；旧批次结论不改写。授权、对账与证据导出统一服从复核结论。归属差异解释不完整时正式证据暂停导出（409 EVIDENCE_PAUSED），补全说明后恢复。重跑同一批不新增复核版本；切换复核需带当前版本号，中断返回409并保留旧版与原分区证据。
+
 ## 演示
 
 1. 打开首页，核对当次计算、差异和隔离原因。
@@ -34,9 +38,9 @@ docker compose exec -T app pytest -q
 
 ## 输入与输出
 
-输入列见 `docs/DATA-DICTIONARY.md`。项目包含dirty.csv、clean.csv、legacy.csv，统一走实际导入路径。上传限制4MB，拒绝不带时区的时间。业务键按字符串保留，Decimal参与计算，空值不会当零。
+输入列见 `docs/DATA-DICTIONARY.md`。项目包含dirty.csv、clean.csv、legacy.csv、boundary.csv，统一走实际导入路径。上传限制4MB，拒绝不带时区的时间。业务键按字符串保留，Decimal参与计算，空值不会当零。
 
-`POST /api/runs` 接收sample或csv；`GET /api/runs`返回历史批次；`POST /api/runs/<id>/review`需要version与decision；`GET /api/runs/<id>/archive`返回唯一证据导出。
+`POST /api/runs` 接收sample或csv；`GET /api/runs`返回历史批次；`POST /api/runs/<id>/review`需要version与decision；`GET /api/runs/<id>/archive`返回唯一证据导出。`GET /api/runs/<id>/attributions`返回归属复核版本与切换历史；`POST /api/runs/<id>/attributions/<event_id>`需要version、decision（source或receiver）与可选explanation。
 
 ## 范围
 

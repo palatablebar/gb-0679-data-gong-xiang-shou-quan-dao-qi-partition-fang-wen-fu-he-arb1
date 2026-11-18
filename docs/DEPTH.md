@@ -29,10 +29,17 @@
 | TRAP-07 | 上游结果空值 | 误报拒绝 | 隔离缺失 | `app/values.py` | `tests/test_m3.py::test_real_missing_decision_not_zero` |
 | TRAP-19 | 允许与拒绝重叠 | 后写覆盖 | 拒绝优先且排序证据 | `app/modules/m4_conflicts/rules.py` | `tests/test_m4.py::test_deny_priority_counterexample` |
 | TRAP-23 | 授权到期点 | 多放行一次 | 半开生效窗 | `app/modules/m3_grants/rules.py` | `tests/test_m3.py::test_expiry_endpoint_excluded` |
+| TRAP-31 | 月初夜间跨区归属 | 沿用来源或全量重算 | 唯一归属复核版本，默认按接收方业务日重算，旧批不改口 | `app/attribution.py` | `tests/test_attribution.py::test_boundary_night_diverges` |
+| TRAP-32 | 归属差异解释缺失 | 照常出证据 | 解释不完整暂停正式证据导出 | `app/main.py` | `tests/test_attribution.py::test_evidence_paused_until_explanation_complete` |
+| TRAP-33 | 复核切换中断 | 旧版被覆盖 | 版本条件更新，旧版与原分区证据入历史 | `app/store.py` | `tests/test_attribution.py::test_switch_interrupted_keeps_old_version` |
 
 ## 对账规则
 
 输入原始逻辑行=最终采纳来源行+隔离来源行+重复行+空白行+分段表头。派生记录用_sources保存完整来源，因此分组不丢行。业务预期合计与上游申报合计之差等于逐行差异之和。结果按输入摘要、规则版本及参数产生唯一批次，事务写入；同源重跑只复用已有批次。
+
+## 分区归属复核
+
+仅当期访问（来源分区等于发送方月初推导月）且接收方业务日落月不同时构成归属差异；历史分区访问沿用来源。每次共享访问在批次内形成唯一复核版本（run_id+event_id主键，版本从1开始），同源重跑INSERT OR IGNORE不新增版本。默认裁决按接收方地区日期重算（参数receiver_tz，默认+08:00），授权、对账、证据导出按生效分区重算服从结论，来源与接收方分区作为证据列永不改写。差异解释=系统事实+人工说明（CSV note或复核补充），缺失时m7就绪置否且证据导出返回409 EVIDENCE_PAUSED。切换复核走版本条件更新：成功时旧版写入partition_review_history，中断返回409，当前版与原分区证据不动。
 
 ## 已知不覆盖
 

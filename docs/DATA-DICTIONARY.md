@@ -9,3 +9,7 @@ observed为真实访问执行结果allowed或blocked；reported为上游0/1判�
 业务ID和超大整数按文本保形；Decimal参与数量金额计算，对外序列化为字符串。哨兵集合定义在app/values.py，缺失值不能当零。所有时间带UTC偏移，先转UTC比较，业务日按指定地区划分。区间统一[start,end)。重复业务键保留第一条、完全相同行计重复；值冲突行隔离且保留原值。空文件、全空白、仅表头分开拒绝。
 
 运行清单包括输入sha256、规则版本、参数、生成时刻与耗时。源行编号以CSV解析器的物理结束行号表示，引号内换行不增加记录数。输入超过4MB返回413，非法表头和类型返回422，失效版本复核返回409。
+
+## 分区归属
+
+参数receiver_tz为接收方时区偏移（如+08:00，默认+08:00），参与批次摘要。attribution为每次共享访问的归属复核版本：source_partition为来源分区证据，sender_partition为发送方月初（UTC）推导，receiver_partition为接收方业务日落月，diverged标记月初夜间跨区差异，decision为当前裁决（receiver按接收方重算或source沿用来源），effective_partition为授权、对账与证据服从的生效分区，explanation为差异解释，complete标记解释是否完整，version为复核版本号。差异行缺少人工说明时complete为否，该批正式证据导出暂停（409 EVIDENCE_PAUSED）。

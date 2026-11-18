@@ -1,0 +1,5 @@
+event_id,principal,resource,partition,access_time,observed,reported,note
+10001,analyst,orders,2026-11,2026-12-01T00:30:00+08:00,allowed,1,月初夜间跨区归档
+10002,analyst,orders,2026-11,2026-12-01T01:30:00+08:00,allowed,1,
+10003,auditor,customers,2026-11,2026-11-15T10:00:00+08:00,allowed,1,当月日间访问
+10004,analyst,orders,2026-09,2026-11-16T03:00:00+08:00,blocked,0,历史分区回访

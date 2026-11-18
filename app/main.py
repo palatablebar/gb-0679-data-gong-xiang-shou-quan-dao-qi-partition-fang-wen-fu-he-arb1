@@ -34,16 +34,26 @@ def create_app():
     @application.get("/api/runs")
     def history(): return {"runs":store.history()}
     @application.get("/api/runs/<run_id>")
-    def run_detail(run_id): return store.get(run_id)
+    def run_detail(run_id): return pipeline.reviewed(run_id)
     @application.post("/api/runs/<run_id>/review")
     def review(run_id):
         p=request.get_json(silent=True) or {}
         if not isinstance(p.get("version"),int): raise DomainError("BAD_VERSION","请提供版本号")
         return store.review(run_id,p["version"],p.get("decision"))
+    @application.get("/api/runs/<run_id>/attributions")
+    def attribution_list(run_id):
+        store.get(run_id)
+        return {"attributions":store.attributions(run_id),"history":store.review_history(run_id)}
+    @application.post("/api/runs/<run_id>/attributions/<event_id>")
+    def attribution_switch(run_id,event_id):
+        p=request.get_json(silent=True) or {}
+        if not isinstance(p.get("version"),int): raise DomainError("BAD_VERSION","请提供版本号")
+        return {"attributions":store.switch_attribution(run_id,event_id,p["version"],p.get("decision"),p.get("explanation"))}
     @application.get("/api/runs/<run_id>/archive")
     def archive(run_id):
         from app.archive import build_archive
-        run=store.get(run_id)
+        if store.attribution_paused(run_id): raise DomainError("EVIDENCE_PAUSED","归属差异解释不完整，正式证据暂停",409)
+        run=pipeline.reviewed(run_id)
         return application.response_class(build_archive(run),mimetype="text/csv",headers={"Content-Disposition":'attachment; filename="evidence.csv"'})
     for index,(slug,title) in enumerate(MODULES,1):
         module=importlib.import_module(f"app.modules.m{index}_{slug}.handler")
